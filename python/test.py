@@ -19,7 +19,7 @@ def printPyr(gp):
 
 nb_octaves = 8;
 
-raw = cv2.imread('i9.jpg')
+raw = cv2.imread('i61.jpg')
 
 # Intensity image
 r,g,b = cv2.split(raw)
@@ -64,7 +64,8 @@ G_gp = gaussPyr(G,nb_octaves);
 B_gp = gaussPyr(B,nb_octaves);
 Y_gp = gaussPyr(Y,nb_octaves);
 
-print len(I_gp), len(R_gp), len(G_gp), len(B_gp), len(Y_gp)
+
+# print len(I_gp), len(R_gp), len(G_gp), len(B_gp), len(Y_gp)
 
 
 # printPyr(I_gp)
@@ -74,18 +75,40 @@ print len(I_gp), len(R_gp), len(G_gp), len(B_gp), len(Y_gp)
 # Build oriented Gabor pyramids at 0, 45, 90 & 135 degrees
 plt.figure();
 
-thetas = np.array([0,45,90,135]);
+thetas = np.array([0,45,90,135])/180.0*np.pi;
 O_gp = np.ndarray(shape=(thetas.size,nb_octaves),dtype=object);
+
 for t in range(thetas.size):
 	theta = thetas[t];
-	# gabor_kernel = gabor_kernel/np.sum(gabor_kernel)
-	src = I;
+	gabor_kernel = cv2.getGaborKernel((5,5), 1, theta, 1, 1, 0);
+	gabor_kernel = gabor_kernel/np.sum(gabor_kernel);
+	# print gabor_kernel
 
-	O_gp[t,0] = [src];
+	src = I;
+	# print src.shape
+	O_gp[t,0] = src;
+	plt.subplot(4,8,8*t+1),plt.imshow(O_gp[t,0], cmap='gray')
+	
 	for i in range(1,nb_octaves):
-		gabor_kernel = cv2.getGaborKernel((5,5), i, theta, 1, 1, 0)
-		O_gp[t,i] = cv2.filter2D(I, -1, gabor_kernel);
-		print src.shape
+		# print theta, i
+		
+		src = cv2.filter2D(src, -1, gabor_kernel);
+
+		#Downsample step
+		src = cv2.resize(src, (src.shape[1]/2,src.shape[0]/2),interpolation=cv2.INTER_AREA)
+		# src_temp = np.zeros((src.shape[0]/2,src.shape[1]/2));
+
+		# print src.shape[0], src.shape[1]
+		# print src.shape[0]/2, src.shape[1]/2
+
+		# for y in range(src.shape[0]/2):
+		# 	for x in range(src.shape[1]/2):
+		# 		src_temp = (src[2*y,2*x] + src[2*y+1,2*x] + src[2*y,2*x+1] + src[2*y+1,2*x+1])/4.0
+
+		# print src_temp.shape_origin
+
+		# src = src_temp;
+		O_gp[t,i] = src;
 		plt.subplot(4,8,8*t+i+1),plt.imshow(O_gp[t,i], cmap='gray')
 
 plt.show();
