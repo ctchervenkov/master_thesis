@@ -51,13 +51,49 @@ def centerSurroundDiff(im_c,im_s):
 	im_cs = np.zeros(im_c.shape);
 	im_s = cv2.resize(im_s, (im_c.shape[1],im_c.shape[0]),interpolation=cv2.INTER_LINEAR);
 	im_cs = np.absolute(im_c - im_s);
-
 	return im_cs;
-def mapNormalization(im_cs):
-	im_cs = im_cs / np.maximum(im_cs) * 100.0;
+
+def mapNormalization(src):
+	src = src / np.amax(src) * 100.0;
 	minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(src);
-	print maxVal
-	print maxLoc
+	M = maxVal;
+	threshold = 0.5*(maxVal - minVal) + minVal;
+	m = 0;
+	nb_peaks = 0;
+
+	while maxVal > threshold:
+		maxVal = np.amax(src[src<maxVal]);
+		m += maxVal;
+		nb_peaks += 1;
+
+	m /= nb_peaks;
+	# print M, m
+	out = src * np.power(M-m,2);
+
+	return out;
+
+def buildIntensityConspicuityMap(I_pyr,c_list,delta_list):
+	reduce_scale = np.amax(c_list);
+	consp_map = np.zeros(I_pyr[reduce_scale].shape);
+	for c in c_list:
+		for delta in delta_list:
+			s = c + delta;
+			consp_map += cv2.resize(mapNormalization(centerSurroundDiff(I_pyr[c],I_pyr[s])), (consp_map.shape[1],consp_map.shape[0]),interpolation=cv2.INTER_LINEAR);
+
+	return consp_map;
+
+def buildColorConspicuityMap(R_pyr,G_pyr,B_pyr,Y_pyr,c_list,delta_list):
+	reduce_scale = np.amax(c_list);
+	consp_map = np.zeros(R_pyr[reduce_scale].shape);
+	for c in c_list:
+		for delta in delta_list:
+			s = c + delta;
+			RG_cs = centerSurroundDiff(R_pyr[c] - G_pyr[c], G_pyr[s] - R_pyr[s]);
+			BY_cs = centerSurroundDiff(B_pyr[c] - Y_pyr[c], Y_pyr[s] - B_pyr[s]);
+			norm_im = mapNormalization(RG_cs) + mapNormalization(BY_cs); 
+			consp_map += cv2.resize(norm_im, (consp_map.shape[1],consp_map.shape[0]),interpolation=cv2.INTER_LINEAR);
+
+	return consp_map;
 
 
 
@@ -97,8 +133,17 @@ B_gp = gaussPyr(B,nb_octaves);
 Y_gp = gaussPyr(Y,nb_octaves);
 
 
-im_sc = centerSurroundDiff(I_gp[2],I_gp[5])
-print im_sc
+
+# Build conspicuity maps
+I_bar = buildIntensityConspicuityMap(I_gp,np.array([2,3,4]),np.array([3,4]))
+C_bar = buildColorConspicuityMap(R_gp,G_gp,B_gp,Y_gp,np.array([2,3,4]),np.array([3,4]))
+
+plt.figure()
+plt.subplot(1,3,1),plt.imshow(I_bar, cmap='gray'), plt.title('Conspicuity Map Intensity')
+plt.subplot(1,3,2),plt.imshow(C_bar, cmap='gray'), plt.title('Conspicuity Map Color')
+
+plt.show();
+
 
 # print len(I_gp), len(R_gp), len(G_gp), len(B_gp), len(Y_gp)
 
