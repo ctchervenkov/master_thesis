@@ -132,6 +132,8 @@ G_gp = gaussPyr(G,nb_octaves);
 B_gp = gaussPyr(B,nb_octaves);
 Y_gp = gaussPyr(Y,nb_octaves);
 
+# TODO: Build Gabor pyramid
+
 
 
 # Build conspicuity maps
@@ -142,6 +144,16 @@ plt.figure()
 plt.subplot(1,3,1),plt.imshow(I_bar, cmap='gray'), plt.title('Conspicuity Map Intensity')
 plt.subplot(1,3,2),plt.imshow(C_bar, cmap='gray'), plt.title('Conspicuity Map Color')
 
+# plt.show();
+# print I_bar.shape, C_bar.shape
+
+#TODO: Build orientation conspicuity map
+O_bar = np.zeros(I_bar.shape);
+S = (I_bar + C_bar + O_bar)/3.0;
+
+
+plt.figure()
+plt.imshow(S, cmap='gray'), plt.title('Saliency')
 plt.show();
 
 
