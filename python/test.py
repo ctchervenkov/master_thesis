@@ -19,13 +19,20 @@ def printPyr(gp):
 
 nb_octaves = 8;
 
-raw = cv2.imread('i61.jpg')
+raw = cv2.imread('benchmark1.png') 
 
 # Intensity image
 r,g,b = cv2.split(raw)
-I = cv2.add(b,g);
-I = cv2.add(I,r);
-I = I/3;
+I = (b+g+r)/3.0;
+
+plt.figure()
+plt.subplot(1,5,1),plt.imshow(raw), plt.title('raw')
+plt.subplot(1,5,2),plt.imshow(r, cmap='gray'), plt.title('r')
+plt.subplot(1,5,3),plt.imshow(g, cmap='gray'), plt.title('g')
+plt.subplot(1,5,4),plt.imshow(b, cmap='gray'), plt.title('b')
+plt.subplot(1,5,5),plt.imshow(I, cmap='gray'), plt.title('I')
+# plt.show()
+
 
 # Normalize r,g,b by I & create color channels
 I_max = np.amax(I);
@@ -50,11 +57,11 @@ G = np.maximum(0,G);
 B = np.maximum(0,B);
 Y = np.maximum(0,Y);
 
-# plt.figure()
-# plt.subplot(1,4,1),plt.imshow(R, cmap='gray'), plt.title('R')
-# plt.subplot(1,4,2),plt.imshow(G, cmap='gray'), plt.title('G')
-# plt.subplot(1,4,3),plt.imshow(B, cmap='gray'), plt.title('B')
-# plt.subplot(1,4,4),plt.imshow(Y, cmap='gray'), plt.title('Y')
+plt.figure()
+plt.subplot(1,4,1),plt.imshow(R, cmap='gray'), plt.title('R')
+plt.subplot(1,4,2),plt.imshow(G, cmap='gray'), plt.title('G')
+plt.subplot(1,4,3),plt.imshow(B, cmap='gray'), plt.title('B')
+plt.subplot(1,4,4),plt.imshow(Y, cmap='gray'), plt.title('Y')
 # plt.show()
 
 # Build Gaussian pyramids
