@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 
 ## Function definitions ##
 def getIntensityImage(raw):
-	r,g,b = cv2.split(raw)
+	b,g,r = cv2.split(raw)
 	I = (b+g+r)/3.0;
 	return I, r, g, b;
 
@@ -54,7 +54,10 @@ def centerSurroundDiff(im_c,im_s):
 	return im_cs;
 
 def mapNormalization(src):
-	src = src / np.amax(src) * 100.0;
+	print src
+	print np.amax(src)
+	if np.absolute(np.amax(src)) > 0.0:
+		src = src / np.amax(src) * 100.0;
 	minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(src);
 	M = maxVal;
 	threshold = 0.5*(maxVal - minVal) + minVal;
@@ -66,7 +69,8 @@ def mapNormalization(src):
 		m += maxVal;
 		nb_peaks += 1;
 
-	m /= nb_peaks;
+	if nb_peaks > 0:
+		m /= nb_peaks;
 	# print M, m
 	out = src * np.power(M-m,2);
 
@@ -95,6 +99,9 @@ def buildColorConspicuityMap(R_pyr,G_pyr,B_pyr,Y_pyr,c_list,delta_list):
 
 	return consp_map;
 
+# TODO :
+# def buildOrientationConspicuityMap:
+
 
 
 
@@ -102,7 +109,7 @@ def buildColorConspicuityMap(R_pyr,G_pyr,B_pyr,Y_pyr,c_list,delta_list):
 
 nb_octaves = 8;
 
-raw = cv2.imread('benchmark1.png') 
+raw = cv2.imread('benchmark3.png') 
 
 # Intensity image
 I, r, g, b = getIntensityImage(raw);
@@ -133,36 +140,6 @@ B_gp = gaussPyr(B,nb_octaves);
 Y_gp = gaussPyr(Y,nb_octaves);
 
 # TODO: Build Gabor pyramid
-
-
-
-# Build conspicuity maps
-I_bar = buildIntensityConspicuityMap(I_gp,np.array([2,3,4]),np.array([3,4]))
-C_bar = buildColorConspicuityMap(R_gp,G_gp,B_gp,Y_gp,np.array([2,3,4]),np.array([3,4]))
-
-plt.figure()
-plt.subplot(1,3,1),plt.imshow(I_bar, cmap='gray'), plt.title('Conspicuity Map Intensity')
-plt.subplot(1,3,2),plt.imshow(C_bar, cmap='gray'), plt.title('Conspicuity Map Color')
-
-# plt.show();
-# print I_bar.shape, C_bar.shape
-
-#TODO: Build orientation conspicuity map
-O_bar = np.zeros(I_bar.shape);
-S = (I_bar + C_bar + O_bar)/3.0;
-
-
-plt.figure()
-plt.imshow(S, cmap='gray'), plt.title('Saliency')
-plt.show();
-
-
-# print len(I_gp), len(R_gp), len(G_gp), len(B_gp), len(Y_gp)
-
-
-# printPyr(I_gp)
-# plt.show();
-
 
 # # Build oriented Gabor pyramids at 0, 45, 90 & 135 degrees
 # plt.figure();
@@ -204,3 +181,24 @@ plt.show();
 # 		plt.subplot(4,8,8*t+i+1),plt.imshow(O_gp[t,i], cmap='gray')
 
 # plt.show();
+
+
+# Build conspicuity maps
+I_bar = buildIntensityConspicuityMap(I_gp,np.array([2,3,4]),np.array([3,4]))
+C_bar = buildColorConspicuityMap(R_gp,G_gp,B_gp,Y_gp,np.array([2,3,4]),np.array([3,4]))
+
+plt.figure()
+plt.subplot(1,3,1),plt.imshow(I_bar, cmap='gray'), plt.title('Conspicuity Map Intensity')
+plt.subplot(1,3,2),plt.imshow(C_bar, cmap='gray'), plt.title('Conspicuity Map Color')
+
+# plt.show();
+# print I_bar.shape, C_bar.shape
+
+#TODO: Build orientation conspicuity map
+O_bar = np.zeros(I_bar.shape);
+S = (I_bar + C_bar + O_bar)/3.0;
+
+
+plt.figure()
+plt.imshow(S, cmap='gray'), plt.title('Saliency')
+plt.show();
