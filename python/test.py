@@ -40,45 +40,34 @@ def buildPyramid(src,kernel,octaves):
 		src = cv2.filter2D(src, -1, kernel);
 		src = cv2.resize(src, (src.shape[1]/2,src.shape[0]/2),interpolation=cv2.INTER_AREA)
 		pyr.append(src);
-		print src.shape
 	return pyr;
 
 def buildGaussianPyramid(src,octaves):
 	gp = np.ndarray(shape=(1,1),dtype=object);
 	kernel = cv2.getGaussianKernel(5, 1);
+	kernel = kernel/np.sum(kernel);
 	gp[0,0] = buildPyramid(src,kernel,octaves);
 	return gp;
 
-# def gaborPyr(src,nb_octaves,thetas):
-# 	# plt.figure();
-# 	gp = np.ndarray(shape=(thetas.size,1),dtype=object);
+def buildGaborPyramid(src,octaves,thetas):
+	gp = np.ndarray(shape=(thetas.size,1),dtype=object);
+	for t in range(thetas.size):
+		theta = thetas[t];
+		kernel = cv2.getGaborKernel((5,5), 1, theta, 1, 1, 0);
+		kernel = kernel/np.sum(kernel);
+		gp[t,0] = buildPyramid(src,kernel,octaves);
 
-# 	for t in range(thetas.size):
-# 		theta = thetas[t];
-# 		kernel = cv2.getGaborKernel((5,5), 1, theta, 1, 1, 0);
-# 		kernel = kernel/np.sum(kernel);
+	return gp
 
-
-# 		gp[t,0] = src;
-# 		# plt.subplot(4,8,8*t+1),plt.imshow(gp[t,0], cmap='gray')
-# 		for i in range(1,nb_octaves):
-
-# 			src = cv2.filter2D(src, -1, kernel);
-
-# 			#Downsample step
-# 			src = cv2.resize(src, (src.shape[1]/2,src.shape[0]/2),interpolation=cv2.INTER_AREA)
-
-# 			gp[t,i] = src;
-# 			# plt.subplot(4,8,8*t+i+1),plt.imshow(gp[t,i], cmap='gray')
-
-# 	# plt.show();
-# 	return gp
-
-def printPyr(gp):
+def printPyramid(gp):
+	cols = gp.shape[0];
+	rows = len(gp[0,0]);
 	plt.figure()
-	for i in range(len(gp)):
-		plt.subplot(1,len(gp),i+1)
-		plt.imshow(gp[i], cmap='gray')
+	for i in range(cols):
+		pyr = gp[i,0];
+		for j in range(rows):
+			plt.subplot(cols,rows,i*rows + j + 1)
+			plt.imshow(pyr[j], cmap='gray')
 
 def centerSurroundDiff(im_c,im_s):
 	im_cs = np.zeros(im_c.shape);
@@ -113,7 +102,7 @@ def buildIntensityConspicuityMap(I_pyr,c_list,delta_list):
 	for c in c_list:
 		for delta in delta_list:
 			s = c + delta;
-			consp_map += cv2.resize(mapNormalization(centerSurroundDiff(I_pyr[c],I_pyr[s])), (consp_map.shape[1],consp_map.shape[0]),interpolation=cv2.INTER_LINEAR);
+			consp_map += cv2.resize(mapNormalization(centerSurroundDiff(I_pyr[c],I_pyr[s])), (consp_map.shape[1],consp_map.shape[0]),interpolation=cv2.INTER_AREA);
 
 	return consp_map;
 
@@ -126,16 +115,27 @@ def buildColorConspicuityMap(R_pyr,G_pyr,B_pyr,Y_pyr,c_list,delta_list):
 			RG_cs = centerSurroundDiff(R_pyr[c] - G_pyr[c], G_pyr[s] - R_pyr[s]);
 			BY_cs = centerSurroundDiff(B_pyr[c] - Y_pyr[c], Y_pyr[s] - B_pyr[s]);
 			norm_im = mapNormalization(RG_cs) + mapNormalization(BY_cs); 
-			consp_map += cv2.resize(norm_im, (consp_map.shape[1],consp_map.shape[0]),interpolation=cv2.INTER_LINEAR);
+			consp_map += cv2.resize(norm_im, (consp_map.shape[1],consp_map.shape[0]),interpolation=cv2.INTER_AREA);
 
 	return consp_map;
 
-# TODO :
+def buildOrientationConspicuityMap(O_pyr,c_list,delta_list):
+	reduce_scale = np.amax(c_list);
+	O_sub_pyr = O_pyr[0,0];
+	consp_map = np.zeros(O_sub_pyr[reduce_scale].shape);
 
+	for t in  range(len(O_pyr)):
+		O_sub_pyr = O_pyr[t,0];
+		sub_consp_map = np.zeros(O_sub_pyr[reduce_scale].shape);
+		for c in c_list:
+			for delta in delta_list:
+				s = c + delta;
+				O_cs = centerSurroundDiff(O_sub_pyr[c],O_sub_pyr[s]);
+				norm_im = mapNormalization(O_cs); 
+				sub_consp_map += cv2.resize(norm_im, (sub_consp_map.shape[1],sub_consp_map.shape[0]),interpolation=cv2.INTER_AREA);
+		consp_map += mapNormalization(sub_consp_map);
 
-
-# def buildOrientationConspicuityMap:
-
+	return consp_map;
 
 
 
@@ -143,7 +143,7 @@ def buildColorConspicuityMap(R_pyr,G_pyr,B_pyr,Y_pyr,c_list,delta_list):
 
 nb_octaves = 8;
 
-raw = cv2.imread('benchmark3.png') 
+raw = cv2.imread('benchmark4.png') 
 
 # Intensity image
 I, r, g, b = getIntensityImage(raw);
@@ -173,22 +173,20 @@ G_gp = buildGaussianPyramid(G,nb_octaves);
 B_gp = buildGaussianPyramid(B,nb_octaves);
 Y_gp = buildGaussianPyramid(Y,nb_octaves);
 
-print I_gp.shape
-
-# TODO: Build Gabor pyramid
-
-# # # Build oriented Gabor pyramids at 0, 45, 90 & 135 degrees
-# thetas = np.array([0.0,45.0,90.0,135.0]) * np.pi / 180.0;
-# O_gp = gaborPyr(I,nb_octaves,thetas);
+# Build oriented Gabor pyramids at 0, 45, 90 & 135 degrees
+thetas = np.array([0.0,45.0,90.0,135.0]) * np.pi / 180.0;
+O_gp =buildGaborPyramid(I,nb_octaves,thetas);
 
 
 # Build conspicuity maps
 I_bar = buildIntensityConspicuityMap(I_gp[0,0],np.array([2,3,4]),np.array([3,4]))
 C_bar = buildColorConspicuityMap(R_gp[0,0],G_gp[0,0],B_gp[0,0],Y_gp[0,0],np.array([2,3,4]),np.array([3,4]))
+O_bar = buildOrientationConspicuityMap(O_gp,np.array([2,3,4]),np.array([3,4]))
 
 plt.figure()
 plt.subplot(1,3,1),plt.imshow(I_bar, cmap='gray'), plt.title('Conspicuity Map Intensity')
 plt.subplot(1,3,2),plt.imshow(C_bar, cmap='gray'), plt.title('Conspicuity Map Color')
+plt.subplot(1,3,3),plt.imshow(O_bar, cmap='gray'), plt.title('Conspicuity Map Orientation')
 
 # plt.show();
 # print I_bar.shape, C_bar.shape
