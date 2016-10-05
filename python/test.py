@@ -40,14 +40,39 @@ def buildPyramid(src,kernel,octaves):
 		src = cv2.filter2D(src, -1, kernel);
 		src = cv2.resize(src, (src.shape[1]/2,src.shape[0]/2),interpolation=cv2.INTER_AREA)
 		pyr.append(src);
+		print src.shape
+	return pyr;
+
+def buildGaussianPyramid(src,octaves):
+	gp = np.ndarray(shape=(1,1),dtype=object);
+	kernel = cv2.getGaussianKernel(5, 1);
+	gp[0,0] = buildPyramid(src,kernel,octaves);
 	return gp;
 
-def gaussPyr(src,octaves):
-	gp = [src];
-	for i in range(octaves):
-		src = cv2.pyrDown(src)
-		gp.append(src);
-	return gp;
+# def gaborPyr(src,nb_octaves,thetas):
+# 	# plt.figure();
+# 	gp = np.ndarray(shape=(thetas.size,1),dtype=object);
+
+# 	for t in range(thetas.size):
+# 		theta = thetas[t];
+# 		kernel = cv2.getGaborKernel((5,5), 1, theta, 1, 1, 0);
+# 		kernel = kernel/np.sum(kernel);
+
+
+# 		gp[t,0] = src;
+# 		# plt.subplot(4,8,8*t+1),plt.imshow(gp[t,0], cmap='gray')
+# 		for i in range(1,nb_octaves):
+
+# 			src = cv2.filter2D(src, -1, kernel);
+
+# 			#Downsample step
+# 			src = cv2.resize(src, (src.shape[1]/2,src.shape[0]/2),interpolation=cv2.INTER_AREA)
+
+# 			gp[t,i] = src;
+# 			# plt.subplot(4,8,8*t+i+1),plt.imshow(gp[t,i], cmap='gray')
+
+# 	# plt.show();
+# 	return gp
 
 def printPyr(gp):
 	plt.figure()
@@ -107,30 +132,7 @@ def buildColorConspicuityMap(R_pyr,G_pyr,B_pyr,Y_pyr,c_list,delta_list):
 
 # TODO :
 
-def gaborPyr(src,nb_octaves,thetas):
-	# plt.figure();
-	gp = np.ndarray(shape=(thetas.size,nb_octaves),dtype=object);
 
-	for t in range(thetas.size):
-		theta = thetas[t];
-		gabor_kernel = cv2.getGaborKernel((5,5), 1, theta, 1, 1, 0);
-		gabor_kernel = gabor_kernel/np.sum(gabor_kernel);
-
-
-		gp[t,0] = src;
-		# plt.subplot(4,8,8*t+1),plt.imshow(gp[t,0], cmap='gray')
-		for i in range(1,nb_octaves):
-
-			src = cv2.filter2D(src, -1, gabor_kernel);
-
-			#Downsample step
-			src = cv2.resize(src, (src.shape[1]/2,src.shape[0]/2),interpolation=cv2.INTER_AREA)
-
-			gp[t,i] = src;
-			# plt.subplot(4,8,8*t+i+1),plt.imshow(gp[t,i], cmap='gray')
-
-	# plt.show();
-	return gp
 
 # def buildOrientationConspicuityMap:
 
@@ -165,22 +167,24 @@ plt.subplot(1,4,4),plt.imshow(Y, cmap='gray'), plt.title('Y')
 # plt.show()
 
 # Build Gaussian pyramids
-I_gp = gaussPyr(I,nb_octaves);
-R_gp = gaussPyr(R,nb_octaves);
-G_gp = gaussPyr(G,nb_octaves);
-B_gp = gaussPyr(B,nb_octaves);
-Y_gp = gaussPyr(Y,nb_octaves);
+I_gp = buildGaussianPyramid(I,nb_octaves);
+R_gp = buildGaussianPyramid(R,nb_octaves);
+G_gp = buildGaussianPyramid(G,nb_octaves);
+B_gp = buildGaussianPyramid(B,nb_octaves);
+Y_gp = buildGaussianPyramid(Y,nb_octaves);
+
+print I_gp.shape
 
 # TODO: Build Gabor pyramid
 
-# # Build oriented Gabor pyramids at 0, 45, 90 & 135 degrees
-thetas = np.array([0.0,45.0,90.0,135.0]) * np.pi / 180.0;
-O_gp = gaborPyr(I,nb_octaves,thetas);
+# # # Build oriented Gabor pyramids at 0, 45, 90 & 135 degrees
+# thetas = np.array([0.0,45.0,90.0,135.0]) * np.pi / 180.0;
+# O_gp = gaborPyr(I,nb_octaves,thetas);
 
 
 # Build conspicuity maps
-I_bar = buildIntensityConspicuityMap(I_gp,np.array([2,3,4]),np.array([3,4]))
-C_bar = buildColorConspicuityMap(R_gp,G_gp,B_gp,Y_gp,np.array([2,3,4]),np.array([3,4]))
+I_bar = buildIntensityConspicuityMap(I_gp[0,0],np.array([2,3,4]),np.array([3,4]))
+C_bar = buildColorConspicuityMap(R_gp[0,0],G_gp[0,0],B_gp[0,0],Y_gp[0,0],np.array([2,3,4]),np.array([3,4]))
 
 plt.figure()
 plt.subplot(1,3,1),plt.imshow(I_bar, cmap='gray'), plt.title('Conspicuity Map Intensity')
