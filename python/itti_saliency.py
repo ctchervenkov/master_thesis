@@ -34,12 +34,13 @@ def getColorChannels(b,g,r,I):
 	return R, G, B, Y;
 
 def buildPyramid(src,kernel,octaves):
-	pyr = [src];
+	pyr = np.ndarray(shape=(1,octaves+1),dtype=object);
+	pyr[0,0] = src;
 	for i in range(octaves):
 		# Filter, downsample and append result
 		src = cv2.filter2D(src, -1, kernel);
-		src = cv2.resize(src, (src.shape[1]/2,src.shape[0]/2),interpolation=cv2.INTER_AREA)
-		pyr.append(src);
+		src = cv2.resize(src, (src.shape[1]/2,src.shape[0]/2),interpolation=cv2.INTER_AREA);
+		pyr[0,i+1] = src;
 	return pyr;
 
 def buildGaussianPyramid(src,octaves):
@@ -61,13 +62,13 @@ def buildGaborPyramid(src,octaves,thetas):
 
 def printPyramid(gp):
 	cols = gp.shape[0];
-	rows = len(gp[0,0]);
+	rows = gp[0,0].shape[1];
 	plt.figure()
 	for i in range(cols):
 		pyr = gp[i,0];
 		for j in range(rows):
 			plt.subplot(cols,rows,i*rows + j + 1)
-			plt.imshow(pyr[j], cmap='gray')
+			plt.imshow(pyr[0,j], cmap='gray')
 
 def centerSurroundDiff(im_c,im_s):
 	im_cs = np.zeros(im_c.shape);
@@ -135,25 +136,24 @@ def mapNormalization(src):
 	return out;
 
 
-
 def buildIntensityConspicuityMap(I_pyr,c_list,delta_list):
 	reduce_scale = np.amax(c_list);
-	consp_map = np.zeros(I_pyr[reduce_scale].shape);
+	consp_map = np.zeros(I_pyr[0,reduce_scale].shape);
 	for c in c_list:
 		for delta in delta_list:
 			s = c + delta;
-			consp_map += cv2.resize(mapNormalization(centerSurroundDiff(I_pyr[c],I_pyr[s])), (consp_map.shape[1],consp_map.shape[0]),interpolation=cv2.INTER_AREA);
+			consp_map += cv2.resize(mapNormalization(centerSurroundDiff(I_pyr[0,c],I_pyr[0,s])), (consp_map.shape[1],consp_map.shape[0]),interpolation=cv2.INTER_AREA);
 
 	return consp_map;
 
 def buildColorConspicuityMap(R_pyr,G_pyr,B_pyr,Y_pyr,c_list,delta_list):
 	reduce_scale = np.amax(c_list);
-	consp_map = np.zeros(R_pyr[reduce_scale].shape);
+	consp_map = np.zeros(R_pyr[0,reduce_scale].shape);
 	for c in c_list:
 		for delta in delta_list:
 			s = c + delta;
-			RG_cs = centerSurroundDiff(R_pyr[c] - G_pyr[c], G_pyr[s] - R_pyr[s]);
-			BY_cs = centerSurroundDiff(B_pyr[c] - Y_pyr[c], Y_pyr[s] - B_pyr[s]);
+			RG_cs = centerSurroundDiff(R_pyr[0,c] - G_pyr[0,c], G_pyr[0,s] - R_pyr[0,s]);
+			BY_cs = centerSurroundDiff(B_pyr[0,c] - Y_pyr[0,c], Y_pyr[0,s] - B_pyr[0,s]);
 			norm_im = mapNormalization(RG_cs) + mapNormalization(BY_cs); 
 			consp_map += cv2.resize(norm_im, (consp_map.shape[1],consp_map.shape[0]),interpolation=cv2.INTER_AREA);
 
@@ -162,15 +162,15 @@ def buildColorConspicuityMap(R_pyr,G_pyr,B_pyr,Y_pyr,c_list,delta_list):
 def buildOrientationConspicuityMap(O_pyr,c_list,delta_list):
 	reduce_scale = np.amax(c_list);
 	O_sub_pyr = O_pyr[0,0];
-	consp_map = np.zeros(O_sub_pyr[reduce_scale].shape);
+	consp_map = np.zeros(O_sub_pyr[0,reduce_scale].shape);
 
-	for t in  range(len(O_pyr)):
+	for t in  range(O_pyr.shape[0]):
 		O_sub_pyr = O_pyr[t,0];
-		sub_consp_map = np.zeros(O_sub_pyr[reduce_scale].shape);
+		sub_consp_map = np.zeros(O_sub_pyr[0,reduce_scale].shape);
 		for c in c_list:
 			for delta in delta_list:
 				s = c + delta;
-				O_cs = centerSurroundDiff(O_sub_pyr[c],O_sub_pyr[s]);
+				O_cs = centerSurroundDiff(O_sub_pyr[0,c],O_sub_pyr[0,s]);
 				norm_im = mapNormalization(O_cs); 
 				sub_consp_map += cv2.resize(norm_im, (sub_consp_map.shape[1],sub_consp_map.shape[0]),interpolation=cv2.INTER_AREA);
 		consp_map += mapNormalization(sub_consp_map);
