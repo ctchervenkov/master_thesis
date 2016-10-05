@@ -53,7 +53,7 @@ def buildGaborPyramid(src,octaves,thetas):
 	gp = np.ndarray(shape=(thetas.size,1),dtype=object);
 	for t in range(thetas.size):
 		theta = thetas[t];
-		kernel = cv2.getGaborKernel((5,5), 1, theta, 1, 1, 0);
+		kernel = cv2.getGaborKernel((9,9), 1, theta, 1, 1, 0);
 		kernel = kernel/np.sum(kernel);
 		gp[t,0] = buildPyramid(src,kernel,octaves);
 
