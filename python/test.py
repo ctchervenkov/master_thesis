@@ -33,8 +33,16 @@ def getColorChannels(r,b,g,I):
 
 	return R, G, B, Y;
 
+def buildPyramid(src,kernel,octaves):
+	pyr = [src];
+	for i in range(octaves):
+		# Filter, downsample and append result
+		src = cv2.filter2D(src, -1, kernel);
+		src = cv2.resize(src, (src.shape[1]/2,src.shape[0]/2),interpolation=cv2.INTER_AREA)
+		pyr.append(src);
+	return gp;
+
 def gaussPyr(src,octaves):
-	shape_origin = src.shape
 	gp = [src];
 	for i in range(octaves):
 		src = cv2.pyrDown(src)
@@ -54,8 +62,6 @@ def centerSurroundDiff(im_c,im_s):
 	return im_cs;
 
 def mapNormalization(src):
-	print src
-	print np.amax(src)
 	if np.absolute(np.amax(src)) > 0.0:
 		src = src / np.amax(src) * 100.0;
 	minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(src);
@@ -100,6 +106,32 @@ def buildColorConspicuityMap(R_pyr,G_pyr,B_pyr,Y_pyr,c_list,delta_list):
 	return consp_map;
 
 # TODO :
+
+def gaborPyr(src,nb_octaves,thetas):
+	# plt.figure();
+	gp = np.ndarray(shape=(thetas.size,nb_octaves),dtype=object);
+
+	for t in range(thetas.size):
+		theta = thetas[t];
+		gabor_kernel = cv2.getGaborKernel((5,5), 1, theta, 1, 1, 0);
+		gabor_kernel = gabor_kernel/np.sum(gabor_kernel);
+
+
+		gp[t,0] = src;
+		# plt.subplot(4,8,8*t+1),plt.imshow(gp[t,0], cmap='gray')
+		for i in range(1,nb_octaves):
+
+			src = cv2.filter2D(src, -1, gabor_kernel);
+
+			#Downsample step
+			src = cv2.resize(src, (src.shape[1]/2,src.shape[0]/2),interpolation=cv2.INTER_AREA)
+
+			gp[t,i] = src;
+			# plt.subplot(4,8,8*t+i+1),plt.imshow(gp[t,i], cmap='gray')
+
+	# plt.show();
+	return gp
+
 # def buildOrientationConspicuityMap:
 
 
@@ -142,45 +174,8 @@ Y_gp = gaussPyr(Y,nb_octaves);
 # TODO: Build Gabor pyramid
 
 # # Build oriented Gabor pyramids at 0, 45, 90 & 135 degrees
-# plt.figure();
-
-# thetas = np.array([0,45,90,135])/180.0*np.pi;
-# O_gp = np.ndarray(shape=(thetas.size,nb_octaves),dtype=object);
-
-# for t in range(thetas.size):
-# 	theta = thetas[t];
-# 	gabor_kernel = cv2.getGaborKernel((5,5), 1, theta, 1, 1, 0);
-# 	gabor_kernel = gabor_kernel/np.sum(gabor_kernel);
-# 	# print gabor_kernel
-
-# 	src = I;
-# 	# print src.shape
-# 	O_gp[t,0] = src;
-# 	plt.subplot(4,8,8*t+1),plt.imshow(O_gp[t,0], cmap='gray')
-	
-# 	for i in range(1,nb_octaves):
-# 		# print theta, i
-		
-# 		src = cv2.filter2D(src, -1, gabor_kernel);
-
-# 		#Downsample step
-# 		src = cv2.resize(src, (src.shape[1]/2,src.shape[0]/2),interpolation=cv2.INTER_AREA)
-# 		# src_temp = np.zeros((src.shape[0]/2,src.shape[1]/2));
-
-# 		# print src.shape[0], src.shape[1]
-# 		# print src.shape[0]/2, src.shape[1]/2
-
-# 		# for y in range(src.shape[0]/2):
-# 		# 	for x in range(src.shape[1]/2):
-# 		# 		src_temp = (src[2*y,2*x] + src[2*y+1,2*x] + src[2*y,2*x+1] + src[2*y+1,2*x+1])/4.0
-
-# 		# print src_temp.shape_origin
-
-# 		# src = src_temp;
-# 		O_gp[t,i] = src;
-# 		plt.subplot(4,8,8*t+i+1),plt.imshow(O_gp[t,i], cmap='gray')
-
-# plt.show();
+thetas = np.array([0.0,45.0,90.0,135.0]) * np.pi / 180.0;
+O_gp = gaborPyr(I,nb_octaves,thetas);
 
 
 # Build conspicuity maps
